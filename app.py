@@ -99,48 +99,59 @@ st.markdown("""
 # Sidebar & Config
 # ---------------------------------------------------------
 with st.sidebar:
-    st.title("🤖 New Chat")
+    st.title("🤖 Chat")
     
-    # Mode Selection
-    mode = st.selectbox(
-        "Model Provider",
-        ["☁️ Cloud (Gemini)", "🏠 Local (Ollama)"],
-        index=0
-    )
-    
-    st.divider()
+    # Mode Toggle (Subtle)
+    mode = st.radio("System Mode", ["☁️ Cloud", "🏠 Local"], label_visibility="collapsed")
     
     api_key = None
     provider_code = "ollama"
     model_name = "llama3"
 
+    # -------------------------------------------
+    # Cloud Config (Auto-Hide Key)
+    # -------------------------------------------
     if "Cloud" in mode:
-        # Secrets/Env loading
-        default_key = st.secrets.get("GOOGLE_API_KEY") or os.getenv("GOOGLE_API_KEY", "")
-        # Password field but behaves like a settings entry
-        api_key = st.text_input("API Key", value=default_key, type="password", placeholder="sk-...")
+        # Try to load from Secrets/Env silently
+        env_key = st.secrets.get("GOOGLE_API_KEY") or os.getenv("GOOGLE_API_KEY")
         
-        provider_code = "gemini"
+        if env_key:
+            # Key found in backend - Hide input for "ChatGPT" feel
+            api_key = env_key
+            st.success("🟢 Connected to Cloud")
+            provider_code = "gemini"
+        else:
+            # Key missing - Show Password Field
+            api_key = st.text_input("Enter API Key", type="password", placeholder="sk-...")
+            if not api_key:
+                 st.warning("Key required for Cloud.")
+            else:
+                 provider_code = "gemini"
             
     else: # Local
-        model_name = st.selectbox("Local Model", ["llama3", "mistral", "phi3", "gemma"])
+        st.info("🏠 Local Mode Active")
         provider_code = "ollama"
+        # Hide model selector in an expander to keep sidebar clean
+        with st.expander("Model Settings"):
+            model_name = st.selectbox("Model", ["llama3", "mistral", "phi3", "gemma"])
 
-    st.markdown("### 📄 Context")
-    uploaded_files = st.file_uploader(
-        "Attached Files", 
-        accept_multiple_files=True,
-        type=['pdf', 'docx', 'txt', 'csv'],
-        label_visibility="collapsed"
-    )
-    
-    if uploaded_files:
-        st.write(f"{len(uploaded_files)} files selected")
-        if st.button("Process Context", type="primary"):
-             st.session_state.processing_trigger = True
-    
     st.divider()
-    if st.button("Clear conversation"):
+    
+    # File Uploader (Cleaner)
+    with st.expander("📚 Knowledge Base", expanded=True):
+        uploaded_files = st.file_uploader(
+            "Upload files", 
+            accept_multiple_files=True,
+            type=['pdf', 'docx', 'txt', 'csv'],
+            label_visibility="collapsed"
+        )
+        if uploaded_files:
+            if st.button("Update Context", type="primary", use_container_width=True):
+                 st.session_state.processing_trigger = True
+    
+    # Bottom Actions
+    st.markdown("---")
+    if st.button("🗑️ Clear Chat", use_container_width=True):
         st.session_state.messages = []
         st.rerun()
 
