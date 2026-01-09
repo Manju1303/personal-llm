@@ -88,7 +88,7 @@ st.markdown("""
 # Sidebar Layout (ChatGPT Style)
 # ---------------------------------------------------------
 # ---------------------------------------------------------
-# Sidebar: Minimalist (New Chat, History, Settings)
+# Sidebar: Minimalist
 # ---------------------------------------------------------
 with st.sidebar:
     if st.button("➕ New Chat", use_container_width=True):
@@ -96,82 +96,99 @@ with st.sidebar:
         st.rerun()
     
     st.markdown("### History")
-    st.caption("Today")
-    st.button("📝 Previous Chat 1", use_container_width=True)
-    st.button("📝 Previous Chat 2", use_container_width=True)
+    st.button("📝 Chat 1", use_container_width=True)
+    st.button("📝 Chat 2", use_container_width=True)
     
     st.markdown("---")
     
-    # Settings (Hidden by default)
+    # Settings (Hidden Details)
     with st.expander("⚙️ Settings"):
-        st.write("**System Configuration**")
         mode = st.radio("Mode", ["Cloud", "Local"], label_visibility="collapsed")
         
-        # Config Logic (Hidden in Settings)
+        # Config Logic
         api_key = None
         provider_code = "ollama"
-        model_name = "llama3"
-
+        # We define defaults here, but selector is floating below
+        
         if "Cloud" in mode:
             cloud_provider = st.selectbox("Cloud", ["Groq", "Google Gemini"])
             if "Gemini" in cloud_provider:
                 provider_code = "gemini"
                 env_key = st.secrets.get("GOOGLE_API_KEY") or os.getenv("GOOGLE_API_KEY")
-                if env_key:
-                    api_key = env_key
-                    st.success("Connected")
-                else:
-                    api_key = st.text_input("Key", type="password")
+                api_key = env_key if env_key else st.text_input("Key", type="password")
             else:
                 provider_code = "groq"
-                st.info("Using Groq")
                 env_key = st.secrets.get("GROQ_API_KEY") or os.getenv("GROQ_API_KEY")
-                if env_key: 
-                    api_key = env_key 
-                    st.success("Connected")
-                else: 
-                     api_key = st.text_input("Groq Key", type="password")
+                api_key = env_key if env_key else st.text_input("Key", type="password")
         else:
             provider_code = "ollama"
-            st.info("Local Mode")
 
-    # Knowledge Base (Moved specific file handling to main area or settings? 
-    # User said sidebar only NewChat/Settings/History. 
-    # But we need file upload. Let's put it in Settings for minimal look or a small icon)
+    # Files
     with st.expander("📂 Files"):
         uploaded_files = st.file_uploader("Upload", accept_multiple_files=True, label_visibility="collapsed")
-        if uploaded_files:
-            if st.button("Process", use_container_width=True):
-                 st.session_state.processing_trigger = True
+        if uploaded_files and st.button("Process"):
+             st.session_state.processing_trigger = True
 
 # ---------------------------------------------------------
-# Main Area: Top Bar (Model Selector)
+# Floating Model Selector (The "Hack")
 # ---------------------------------------------------------
-# ChatGPT puts model selector at top left.
-col_model, col_spacer, col_mic = st.columns([2, 4, 1])
+# We place this physically in the layout, but CSS moves it to the bottom bar
+st.markdown("""
+<style>
+    /* Position the container 'fixed' at bottom right */
+    div.floating-selector {
+        position: fixed;
+        bottom: 25px; /* Aligns with Chat Input */
+        right: 80px;  /* Left of Send Button */
+        z-index: 1000;
+        width: 150px;
+    }
+    
+    /* Style the selectbox inside to look like a Pill */
+    div.floating-selector div[data-baseweb="select"] > div {
+        background-color: #2F2F2F !important;
+        border-radius: 20px !important;
+        border: 1px solid #424242 !important;
+        font-size: 0.8rem !important;
+        min-height: 30px !important;
+        height: 30px !important;
+        padding-top: 0px !important;
+        padding-bottom: 0px !important;
+    }
+    div.floating-selector div[data-baseweb="select"] span {
+        line-height: 30px !important;
+    }
+</style>
+""", unsafe_allow_html=True)
 
-with col_model:
-    # Model Selector (Visual like ChatGPT Header)
+# Container for the floating widget
+with st.container():
+    st.markdown('<div class="floating-selector">', unsafe_allow_html=True)
+    
     if provider_code == "ollama":
         model_name = st.selectbox(
-            "Model", 
-            ["llama3", "mistral", "gemma", "phi3", "Custom..."], 
-            label_visibility="collapsed"
+            "M", 
+            ["llama3", "mistral", "gemma", "phi3", "custom"], 
+            label_visibility="collapsed",
+            key="float_model_select"
         )
-        if model_name == "Custom...":
-            model_name = st.text_input("Model Name", value="gemma2:latest")
+        if model_name == "custom":
+            # If custom, we might need a separate input? 
+            # For UI compactness, let's just default to a popular one if they pick custom or show toast
+            st.toast("Edit custom model in Settings")
+            model_name = "llama3" 
     elif provider_code == "groq":
         model_name = st.selectbox(
-            "Model", 
+            "M", 
             ["llama3-8b-8192", "llama3-70b-8192", "mixtral-8x7b-32768"], 
-            label_visibility="collapsed"
+            label_visibility="collapsed",
+            key="float_model_select"
         )
     else:
-        st.markdown(f"**🤖 Gemini 1.5 Flash**")
-
-with col_mic:
-    # Mic Dummy Button (Visual)
-    st.button("🎙️", type="secondary")
+        st.markdown('<div style="color:gray; font-size:0.8rem; padding:5px;">Gemini Flash</div>', unsafe_allow_html=True)
+        model_name = "gemini-1.5-flash"
+        
+    st.markdown('</div>', unsafe_allow_html=True)
 
 st.divider()
 
