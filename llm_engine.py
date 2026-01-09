@@ -25,7 +25,8 @@ class LLMEngine:
                     raise ValueError("API Key is required for Gemini.")
                 
                 # Setup Gemini LLM
-                self.llm = Gemini(model="models/gemini-1.5-flash", api_key=api_key)
+                # Using 'gemini-pro' as it is the most stable alias.
+                self.llm = Gemini(model="models/gemini-pro", api_key=api_key)
                 
                 # Setup Gemini Embeddings
                 self.embed_model = GeminiEmbedding(model_name="models/embedding-001", api_key=api_key)
