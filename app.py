@@ -8,88 +8,98 @@ st.set_page_config(page_title="Personal AI", page_icon="🤖", layout="wide")
 # ---------------------------------------------------------
 # ChatGPT Style CSS
 # ---------------------------------------------------------
+# ---------------------------------------------------------
+# ChatGPT Style CSS with Animations
+# ---------------------------------------------------------
 st.markdown("""
 <style>
-    /* Global Reset & Font */
-    @import url('https://fonts.googleapis.com/css2?family=Söhne&display=swap');
+    /* Import Premium Fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600&display=swap');
     
     html, body, [class*="css"] {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-family: 'Source Sans Pro', sans-serif;
     }
 
-    /* Main Background - Dark Grey */
-    .stApp {
-        background-color: #343541;
-        color: #ECECF1;
+    /* ANIMATIONS */
+    @keyframes slideIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
     }
     
-    /* Sidebar Background - Darker Grey */
+    .stChatMessage {
+        animation: slideIn 0.3s ease-out forwards;
+    }
+
+    /* Main Background */
+    .stApp {
+        background-color: #343541; /* ChatGPT Dark */
+        color: #d1d5db;
+    }
+    
+    /* Sidebar */
     section[data-testid="stSidebar"] {
         background-color: #202123;
+        border-right: 1px solid #4d4d4f;
     }
     
-    /* Input Container */
-    .stChatInput {
-        background-color: #343541;
-        padding-bottom: 2rem;
+    /* Chat Bubbles */
+    div[data-testid="stChatMessage"] {
+        padding: 1.5rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1rem;
+        border: 1px solid transparent;
+        transition: background-color 0.3s;
     }
     
-    /* User Message Bubble */
+    /* User Bubble - Dark Transparent */
     div[data-testid="stChatMessage"]:nth-child(odd) {
-        background-color: #343541; /* Matches bg */
-        border: none;
+        background-color: rgba(52, 53, 65, 0.9);
+        border: 1px solid #565869;
     }
     
-    /* Assistant Message Bubble - Slightly Lighter */
+    /* Assistant Bubble - SLightly Lighter */
     div[data-testid="stChatMessage"]:nth-child(even) {
         background-color: #444654;
-        border: none;
-        width: 100%;
-        padding: 1.5rem;
+        border: 1px solid #444654;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
 
-    /* Message Content */
-    .stMarkdown {
-        color: #ECECF1;
-        font-size: 1rem;
-        line-height: 1.6;
-    }
-
-    /* Avatar Styling */
+    /* Avatars */
     .stChatMessage .stChatMessageAvatar {
-        background-color: #19c37d; /* OpenAI Green */
+        background: linear-gradient(135deg, #10a37f, #0d8c6d); /* OpenAI Green Gradient */
         color: white;
+        border-radius: 4px;
     }
     div[data-testid="stChatMessage"]:nth-child(odd) .stChatMessageAvatar {
-        background-color: #5436DA; /* User Purple */
+        background: linear-gradient(135deg, #8e2de2, #4a00e0); /* User Purple Gradient */
     }
 
-    /* Headers */
+    /* Headers & Text */
     h1, h2, h3 {
-        color: #ECECF1 !important;
+        color: #ffffff !important;
         font-weight: 600;
+        letter-spacing: -0.5px;
     }
     
-    /* Buttons in Sidebar */
+    /* Inputs */
+    .stTextInput input, .stSelectbox div[data-baseweb="select"] {
+        background-color: #40414f !important;
+        color: white !important;
+        border: 1px solid #565869 !important;
+        border-radius: 6px;
+    }
+    
+    /* Custom Buttons */
     .stButton button {
-        background-color: #343541;
-        color: #ECECF1;
+        background-color: #40414f;
+        color: white;
+        border-radius: 6px;
         border: 1px solid #565869;
         transition: all 0.2s;
     }
     .stButton button:hover {
-        background-color: #2A2B32;
-        border-color: #ECECF1;
-    }
-    
-    /* Primary Action Button */
-    button[kind="primary"] {
-        background-color: #19c37d !important;
-        border: none !important;
-        color: white !important;
-    }
-    button[kind="primary"]:hover {
-        background-color: #1a885d !important;
+        background-color: #202123;
+        border-color: #10a37f;
     }
 
 </style>
@@ -99,41 +109,47 @@ st.markdown("""
 # Sidebar & Config
 # ---------------------------------------------------------
 with st.sidebar:
-    st.title("🤖 Chat")
+    st.markdown("## 🤖 **Assistant**")
     
-    # Mode Toggle (Subtle)
-    mode = st.radio("System Mode", ["☁️ Cloud", "🏠 Local"], label_visibility="collapsed")
+    # Mode Toggle
+    mode = st.radio("Access Mode", ["☁️ Cloud (Gemini)", "🏠 Local (Ollama)"], label_visibility="collapsed")
     
     api_key = None
     provider_code = "ollama"
     model_name = "llama3"
 
     # -------------------------------------------
-    # Cloud Config (Auto-Hide Key)
+    # Cloud (Gemini)
     # -------------------------------------------
     if "Cloud" in mode:
         # Try to load from Secrets/Env silently
         env_key = st.secrets.get("GOOGLE_API_KEY") or os.getenv("GOOGLE_API_KEY")
         
         if env_key:
-            # Key found in backend - Hide input for "ChatGPT" feel
             api_key = env_key
-            st.success("🟢 Connected to Cloud")
+            st.success("✨ Online: Gemini 1.5 Flash")
             provider_code = "gemini"
         else:
-            # Key missing - Show Password Field
-            api_key = st.text_input("Enter API Key", type="password", placeholder="sk-...")
+            api_key = st.text_input("💎 API Key", type="password", placeholder="Paste Google Key here...")
             if not api_key:
                  st.warning("Key required for Cloud.")
             else:
                  provider_code = "gemini"
             
     else: # Local
-        st.info("🏠 Local Mode Active")
+        st.info("🏠 Offline Mode: Private")
         provider_code = "ollama"
-        # Hide model selector in an expander to keep sidebar clean
-        with st.expander("Model Settings"):
-            model_name = st.selectbox("Model", ["llama3", "mistral", "phi3", "gemma"])
+        # Expanded Free Model List
+        with st.expander("🛠️ Model Settings", expanded=True):
+            model_name = st.selectbox(
+                "Select Model", 
+                [
+                    "llama3", "mistral", "gemma", "phi3",  # Top Tier
+                    "neural-chat", "starling-lm", "codellama", # Specialty
+                    "llama2", "vicuna", "orca-mini" # Legacy/Lightweight
+                ],
+                help="Make sure you have run 'ollama pull <model>' for these to work!"
+            )
 
     st.divider()
     
@@ -166,6 +182,9 @@ if "engine" not in st.session_state:
     st.session_state.engine = None
 if "chat_engine" not in st.session_state:
     st.session_state.chat_engine = None
+
+if "processing_trigger" not in st.session_state:
+    st.session_state.processing_trigger = False
 
 # File Processing
 if st.session_state.processing_trigger and uploaded_files:
