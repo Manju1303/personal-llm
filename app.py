@@ -161,26 +161,41 @@ st.markdown("""
 <style>
     /* 
        Targeting the LAST elements in the sidebar.
-       NOTE: This relies on the precise order of elements in the sidebar above.
        We target the last two 'div.stElementContainer' in the sidebar.
     */
     
     /* Upload Button (The very last item) -> Bottom Left */
     section[data-testid="stSidebar"] > div > div:last-child {
         position: fixed !important;
-        bottom: 25px !important;
+        bottom: 18px !important;
         left: 20px !important;
         width: auto !important;
         z-index: 99999 !important;
+        /* Critical: Don't block clicks around the button */
+        pointer-events: none !important;
+    }
+    section[data-testid="stSidebar"] > div > div:last-child button {
+        pointer-events: auto !important; /* Re-enable clicks on button */
+        border-radius: 50% !important;
+        width: 38px !important;
+        height: 38px !important;
+        background-color: #2F2F2F !important;
+        border: 1px solid #444 !important;
+        color: #ddd !important;
     }
     
     /* Model Selector (The second to last item) -> Bottom Right */
     section[data-testid="stSidebar"] > div > div:nth-last-child(2) {
         position: fixed !important;
-        bottom: 25px !important;
+        bottom: 18px !important;
         right: 80px !important;
         width: 160px !important;
         z-index: 99999 !important;
+        pointer-events: none !important;
+    }
+    /* Re-enable clicks on the selectbox dropdown */
+    section[data-testid="stSidebar"] > div > div:nth-last-child(2) * {
+        pointer-events: auto !important;
     }
     
     /* Styling for the selector to look like a pill */
@@ -192,14 +207,9 @@ st.markdown("""
         min-height: 35px !important;
     }
 
-    /* Styling for the Plus Button */
-    section[data-testid="stSidebar"] > div > div:last-child button {
-        border-radius: 50% !important;
-        width: 38px !important;
-        height: 38px !important;
-        background-color: #2F2F2F !important;
-        border: 1px solid #444 !important;
-        color: #ddd !important;
+    /* Fix Chat Input Z-Index to ensure it's clickable if covered */
+    .stChatInput {
+        z-index: 99990 !important;
     }
 </style>
 """, unsafe_allow_html=True)
