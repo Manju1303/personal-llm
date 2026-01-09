@@ -3,36 +3,44 @@ import logging
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings
 from llama_index.llms.ollama import Ollama
 from llama_index.embeddings.ollama import OllamaEmbedding
+from llama_index.llms.gemini import Gemini
+from llama_index.embeddings.gemini import GeminiEmbedding
 
 # Configure Logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-class LocalLLMEngine:
-    def __init__(self, model_name="llama3", embedding_model="llama3"):
+class LLMEngine:
+    def __init__(self, provider="ollama", model_name="llama3", api_key=None):
         """
-        Initialize the Local LLM Engine with Ollama for both Generation and Embeddings.
+        Initialize the LLM Engine with either Ollama (Local) or Gemini (Cloud).
         """
+        self.provider = provider
         self.model_name = model_name
         
-        # Setup LLM
         try:
-            logger.info(f"Connecting to Ollama with model: {model_name}")
-            self.llm = Ollama(model=model_name, request_timeout=360.0)
-            Settings.llm = self.llm
-        except Exception as e:
-            logger.error(f"Failed to initialize Ollama: {e}")
-            raise e
+            if provider == "gemini":
+                logger.info("Initializing Google Gemini...")
+                if not api_key:
+                    raise ValueError("API Key is required for Gemini.")
+                
+                # Setup Gemini LLM
+                self.llm = Gemini(model="models/gemini-1.5-flash", api_key=api_key)
+                
+                # Setup Gemini Embeddings
+                self.embed_model = GeminiEmbedding(model_name="models/embedding-001", api_key=api_key)
+                
+            else: # Default to Ollama
+                logger.info(f"Initializing Local Ollama: {model_name}")
+                self.llm = Ollama(model=model_name, request_timeout=360.0)
+                self.embed_model = OllamaEmbedding(model_name=model_name)
 
-        # Setup Embeddings (Ollama)
-        try:
-            logger.info(f"Connecting to Ollama for embeddings: {embedding_model}")
-            # Note: Using the same model for embeddings is often fine for simple use cases,
-            # or user can pull 'nomic-embed-text'
-            self.embed_model = OllamaEmbedding(model_name=embedding_model)
+            # Apply Settings
+            Settings.llm = self.llm
             Settings.embed_model = self.embed_model
+            
         except Exception as e:
-            logger.error(f"Failed to load embedding model: {e}")
+            logger.error(f"Failed to initialize {provider}: {e}")
             raise e
 
         self.index = None
@@ -46,14 +54,6 @@ class LocalLLMEngine:
                 return "No files provided."
             
             logger.info(f"Processing {len(input_files)} files...")
-            
-            # Save uploaded files temporarily to read them with SimpleDirectoryReader
-            # NOTE: Streamlit UploadedFile objects are file-like, but SimpleDirectoryReader usually wants paths.
-            # We will handle the conversion in file_handler.py or here.
-            # To adhere to LlamaIndex standards, best to just load Documents directly if possible,
-            # but SimpleDirectoryReader is easiest.
-            # For this 'engine', let's assume we pass in a list of 'Document' objects from LlamaIndex.
-            
             self.index = VectorStoreIndex.from_documents(input_files)
             logger.info("Index created successfully.")
             return self.index

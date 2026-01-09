@@ -2,6 +2,9 @@ streamlit
 llama-index
 llama-index-llms-ollama
 llama-index-embeddings-ollama
+llama-index-llms-gemini
+llama-index-embeddings-gemini
+google-generativeai
 pypdf
 docx2txt
 python-dotenv

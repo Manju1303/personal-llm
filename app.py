@@ -1,5 +1,5 @@
 import streamlit as st
-from llm_engine import LocalLLMEngine
+from llm_engine import LLMEngine
 from file_handler import FileHandler
 import time
 
@@ -27,18 +27,40 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.title("🤖 Personal Multilingual LLM")
-st.markdown("### Your Offline, Secure Data Assistant")
 
 # Sidebar Configuration
 with st.sidebar:
     st.header("⚙️ Configuration")
     
-    model_name = st.selectbox(
-        "Select Local Model",
-        ["llama3", "mistral", "gemma", "phi3"],
+    # Provider Selection
+    provider = st.radio(
+        "Select Mode",
+        ["Local (Ollama)", "Cloud (Google Gemini)"],
         index=0,
-        help="Make sure you have this model installed via `ollama pull <model>`"
+        help="Use 'Local' for privacy/offline. Use 'Cloud' for mobile access when PC is off."
     )
+    
+    api_key = None
+    model_name = "llama3"
+    
+    if "Cloud" in provider:
+        st.info("☁️ Cloud Mode: Works anywhere! Requires API Key.")
+        
+        # Try to load from Secrets/Env
+        default_key = st.secrets.get("GOOGLE_API_KEY") or os.getenv("GOOGLE_API_KEY", "")
+        
+        api_key = st.text_input("Google AI Studio Key", value=default_key, type="password", help="Get free key at aistudio.google.com")
+        provider_code = "gemini"
+        if not api_key:
+            st.warning("⚠️ Please enter API Key to proceed.")
+    else:
+        st.success("🏠 Local Mode: Runs on your PC. Private & Free.")
+        model_name = st.selectbox(
+            "Select Local Model",
+            ["llama3", "mistral", "gemma", "phi3"],
+            index=0
+        )
+        provider_code = "ollama"
     
     st.divider()
     
@@ -68,27 +90,41 @@ if "query_engine" not in st.session_state:
 
 # Logic for Processing Files
 if process_btn and uploaded_files:
-    with st.spinner("Processing files... This runs locally and might take a moment."):
-        try:
-            # Initialize Engine
-            if not st.session_state.engine:
-                st.session_state.engine = LocalLLMEngine(model_name=model_name, embedding_model=model_name)
-            
-            # Update Model if changed
-            if st.session_state.engine.model_name != model_name:
-                 st.session_state.engine = LocalLLMEngine(model_name=model_name, embedding_model=model_name)
+    if provider_code == "gemini" and not api_key:
+        st.error("Please enter a Google API Key first!")
+    else:
+        with st.spinner(f"Processing files using {provider}..."):
+            try:
+                # Initialize Engine
+                # Re-initialize if provider changed or first run
+                st.session_state.engine = LLMEngine(
+                    provider=provider_code, 
+                    model_name=model_name, 
+                    api_key=api_key
+                )
 
-            # Process Files
-            documents = FileHandler.process_uploaded_files(uploaded_files)
-            
-            # Create Index
-            st.session_state.engine.create_index(documents)
-            st.session_state.query_engine = st.session_state.engine.get_query_engine()
-            
-            st.success(f"Successfully processed {len(uploaded_files)} files!")
-        except Exception as e:
-            st.error(f"An error occurred: {str(e)}")
-            st.error("Ensure Ollama is running (`ollama serve`) and the model is pulled.")
+                # Process Files
+                documents = FileHandler.process_uploaded_files(uploaded_files)
+                
+                # Create Index
+                st.session_state.engine.create_index(documents)
+                st.session_state.query_engine = st.session_state.engine.get_query_engine()
+                
+                st.success(f"Successfully processed {len(uploaded_files)} files!")
+            except Exception as e:
+                msg = str(e)
+                if "Connection refused" in msg or "Max retries exceeded" in msg:
+                    st.error("❌ **Could not connect to Ollama.**")
+                    st.warning("""
+                    **Are you running this on the Cloud (Streamlit Share)?**
+                    If yes, **Local (Ollama)** will NOT work because it cannot see your computer.
+                    👉 **Please switch to 'Cloud (Google Gemini)' in the Sidebar.**
+                    
+                    **Are you running this locally?**
+                    👉 Make sure Ollama is running! Open a terminal and type `ollama serve`.
+                    """)
+                else:
+                    st.error(f"An error occurred: {msg}")
 
 # Chat Interface
 for message in st.session_state.messages:
@@ -107,6 +143,19 @@ if prompt := st.chat_input("Ask something about your documents..."):
         full_response = ""
         
         try:
+            # Check for Engine Initialization
+            if not st.session_state.engine:
+                 if provider_code == "gemini" and not api_key:
+                     full_response = "⚠️ Please enter API Key in sidebar."
+                     message_placeholder.markdown(full_response)
+                     raise ValueError("Missing API Key")
+                 
+                 st.session_state.engine = LLMEngine(
+                    provider=provider_code, 
+                    model_name=model_name,
+                    api_key=api_key
+                 )
+            
             if st.session_state.query_engine:
                 # RAG Mode
                 streaming_response = st.session_state.query_engine.query(prompt)
@@ -119,11 +168,7 @@ if prompt := st.chat_input("Ask something about your documents..."):
                 message_placeholder.markdown(full_response)
                 
             else:
-                # Chat Mode (No RAG) - Fallback to just Ollama chat if no files
-                # Quick hack: use the engine's llm directly if initialized, else init it
-                if not st.session_state.engine:
-                     st.session_state.engine = LocalLLMEngine(model_name=model_name)
-                
+                # Chat Mode (No RAG)
                 resp = st.session_state.engine.llm.stream_complete(prompt)
                 for part in resp:
                     full_response += part.delta
@@ -132,8 +177,8 @@ if prompt := st.chat_input("Ask something about your documents..."):
                 message_placeholder.markdown(full_response)
 
         except Exception as e:
-            st.error(f"Error generating response: {e}")
-            full_response = "Error: Could not generate response. Is Ollama running?"
-            message_placeholder.markdown(full_response)
+            if not full_response: # Don't overwrite if we already set a specific error message
+                st.error(f"Error: {e}")
+                full_response = f"Error: {e}"
             
     st.session_state.messages.append({"role": "assistant", "content": full_response})
