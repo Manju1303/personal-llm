@@ -22,40 +22,40 @@ st.markdown("""
         font-family: 'Inter', sans-serif;
     }
 
-    /* Main App - Deep Dark */
+    /* Main App - Pitch Black */
     .stApp {
-        background-color: #212121; /* Deep Black/Grey */
+        background-color: #0d0d0d; /* Almost Pure Black */
         color: #ECECF1;
     }
     
-    /* Sidebar - Black */
+    /* Sidebar - Pure Black */
     section[data-testid="stSidebar"] {
-        background-color: #171717;
-        border-right: 1px solid #2F2F2F;
+        background-color: #000000;
+        border-right: 1px solid #1f1f1f;
     }
     
     /* Buttons (New Chat) */
     .stButton button {
         background-color: transparent;
         color: #ECECF1;
-        border: 1px solid #424242;
+        border: 1px solid #2e2e2e;
         border-radius: 4px;
         transition: all 0.2s;
         text-align: left;
     }
     .stButton button:hover {
-        background-color: #2F2F2F;
+        background-color: #1e1e1e;
     }
     
     /* Input Area - Floats at bottom */
     .stChatInput {
-        background-color: #212121;
+        background-color: #0d0d0d;
         padding-bottom: 30px;
     }
     .stChatInput textarea {
-        background-color: #2F2F2F; /* Input Box Grey */
+        background-color: #1a1a1a; /* Very Dark Grey Input */
         color: white;
-        border: 1px solid #424242;
+        border: 1px solid #2e2e2e;
         border-radius: 12px;
     }
     
