@@ -143,16 +143,43 @@ with st.sidebar:
         st.caption("Gemini Flash") # Placeholder for Gemini
 
     # 2. Upload Button (Will be floated Left)
-    with st.popover("➕", help="Add Files"):
-        st.markdown("### 📂 Upload")
-        uploaded_files_sidebar = st.file_uploader("Drop files", accept_multiple_files=True, label_visibility="collapsed")
+    with st.popover("➕", help="Menu"):
+        # Mimicking the ChatGPT Menu
+        st.markdown("""
+        <style>
+            /* Style buttons inside popover to look like menu items */
+            div[data-testid="stPopoverBody"] button {
+                text-align: left !important;
+                border: none !important;
+                background: transparent !important;
+                color: #ECECF1 !important;
+                padding: 10px !important;
+            }
+            div[data-testid="stPopoverBody"] button:hover {
+                background: #2F2F2F !important;
+            }
+        </style>
+        """, unsafe_allow_html=True)
+        
+        # File Uploader (The main functional item)
+        st.markdown("**📎 Add photos & files**")
+        uploaded_files_sidebar = st.file_uploader("Upload", accept_multiple_files=True, label_visibility="collapsed")
+        
         if uploaded_files_sidebar:
-            st.session_state.uploaded_files = uploaded_files_sidebar # Store in session state
-            if st.button("Process Files", type="primary"):
+            st.session_state.uploaded_files = uploaded_files_sidebar
+            if st.button("⚡ Process Files", type="primary"):
                 st.session_state.processing_trigger = True
                 st.toast("Processing...")
         else:
-            st.session_state.uploaded_files = [] # Clear if no files selected
+            st.session_state.uploaded_files = [] 
+        
+        st.markdown("---")
+        
+        # Simulated Menu Items (Visual Only for now)
+        st.button("🎨 Create image", use_container_width=True, disabled=True, help="Coming Soon")
+        st.button("🧠 Thinking", use_container_width=True, disabled=True, help="Coming Soon")
+        st.button("🔍 Deep research", use_container_width=True, disabled=True, help="Coming Soon")
+        st.button("🛍️ Shopping research", use_container_width=True, disabled=True, help="Coming Soon")
 
 # ---------------------------------------------------------
 # CSS: Teleport Sidebar Widgets to Main Screen Bottom
