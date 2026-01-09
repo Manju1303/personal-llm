@@ -123,28 +123,23 @@ with st.sidebar:
         else:
             provider_code = "ollama"
 
-    # Files
-    with st.expander("📂 Files"):
-        uploaded_files = st.file_uploader("Upload", accept_multiple_files=True, label_visibility="collapsed")
-        if uploaded_files and st.button("Process"):
-             st.session_state.processing_trigger = True
+    # Files (Removed from Sidebar to use Floating +)
+    # kept empty or minimal
+    pass
 
 # ---------------------------------------------------------
-# Floating Model Selector (The "Hack")
+# Floating Widget Container (Model Selector + File Upload)
 # ---------------------------------------------------------
-# We place this physically in the layout, but CSS moves it to the bottom bar
 st.markdown("""
 <style>
-    /* Position the container 'fixed' at bottom right */
+    /* Floating Model Selector (Right) */
     div.floating-selector {
         position: fixed;
-        bottom: 25px; /* Aligns with Chat Input */
-        right: 80px;  /* Left of Send Button */
+        bottom: 25px;
+        right: 80px; 
         z-index: 1000;
         width: 150px;
     }
-    
-    /* Style the selectbox inside to look like a Pill */
     div.floating-selector div[data-baseweb="select"] > div {
         background-color: #2F2F2F !important;
         border-radius: 20px !important;
@@ -152,26 +147,34 @@ st.markdown("""
         font-size: 0.8rem !important;
         min-height: 30px !important;
         height: 30px !important;
-        padding-top: 0px !important;
-        padding-bottom: 0px !important;
     }
-    div.floating-selector div[data-baseweb="select"] span {
-        line-height: 30px !important;
+    
+    /* Floating Upload Button (Left) */
+    div.floating-uploader {
+        position: fixed;
+        bottom: 27px; /* Align with input */
+        left: 20px;
+        z-index: 1001;
+    }
+    div.floating-uploader button {
+        background-color: #2F2F2F !important;
+        color: #ECECF1 !important;
+        border: 1px solid #424242 !important;
+        border-radius: 50% !important; /* Circle */
+        width: 35px !important;
+        height: 35px !important;
+        padding: 0 !important;
+        font-size: 1.2rem !important;
+        line-height: 1 !important;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Container for the floating widget
+# 1. Floating Model Selector (Right)
 with st.container():
     st.markdown('<div class="floating-selector">', unsafe_allow_html=True)
-    
     if provider_code == "ollama":
-        model_name = st.selectbox(
-            "M", 
-            ["llama3", "mistral", "gemma", "phi3", "custom"], 
-            label_visibility="collapsed",
-            key="float_model_select"
-        )
+        model_name = st.selectbox("M", ["llama3", "mistral", "gemma", "phi3", "custom"], label_visibility="collapsed", key="float_model_select")
         if model_name == "custom":
             # If custom, we might need a separate input? 
             # For UI compactness, let's just default to a popular one if they pick custom or show toast
@@ -187,7 +190,26 @@ with st.container():
     else:
         st.markdown('<div style="color:gray; font-size:0.8rem; padding:5px;">Gemini Flash</div>', unsafe_allow_html=True)
         model_name = "gemini-1.5-flash"
-        
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# 2. Floating Upload Button (Left)
+with st.container():
+    st.markdown('<div class="floating-uploader">', unsafe_allow_html=True)
+    
+    # Using Popover for the "Menu" feel
+    with st.popover("➕", help="Add Context"):
+        st.markdown("### 📂 Add Files")
+        uploaded_files = st.file_uploader(
+            "Upload", 
+            accept_multiple_files=True,
+            type=['pdf', 'docx', 'txt', 'csv'],
+            label_visibility="collapsed"
+        )
+        if uploaded_files:
+            if st.button("⚡ Process Files", use_container_width=True):
+                st.session_state.processing_trigger = True
+                st.toast("Processing context...")
+                
     st.markdown('</div>', unsafe_allow_html=True)
 
 st.divider()
