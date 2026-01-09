@@ -22,9 +22,12 @@ class LLMEngine:
         try:
             if provider == "gemini":
                 if not api_key: raise ValueError("Gemini API Key missing.")
-                # FIX: Removing 'models/' prefix as it often causes 404s in newer libs
+                # Setup Gemini LLM (removed 'models/' prefix which causes 404s)
+                # We use 'gemini-1.5-flash-latest' or just 'gemini-pro' for maximum compatibility
                 self.llm = Gemini(model="gemini-1.5-flash", api_key=api_key)
-                self.embed_model = GeminiEmbedding(model_name="models/embedding-001", api_key=api_key)
+                
+                # Setup Gemini Embeddings
+                self.embed_model = GeminiEmbedding(model_name="embedding-001", api_key=api_key)
             
             elif provider == "groq":
                 if not api_key: raise ValueError("Groq API Key missing.")
