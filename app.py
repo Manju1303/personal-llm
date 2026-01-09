@@ -11,181 +11,153 @@ st.set_page_config(page_title="Personal AI", page_icon="🤖", layout="wide")
 # ---------------------------------------------------------
 # ChatGPT Style CSS with Animations
 # ---------------------------------------------------------
+# ---------------------------------------------------------
+# ChatGPT "Midnight" Theme
+# ---------------------------------------------------------
 st.markdown("""
 <style>
-    /* Import Premium Fonts */
-    @import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
     
     html, body, [class*="css"] {
-        font-family: 'Source Sans Pro', sans-serif;
+        font-family: 'Inter', sans-serif;
     }
 
-    /* ANIMATIONS */
-    @keyframes slideIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    
-    .stChatMessage {
-        animation: slideIn 0.3s ease-out forwards;
-    }
-
-    /* Main Background */
+    /* Main App - Deep Dark */
     .stApp {
-        background-color: #343541; /* ChatGPT Dark */
-        color: #d1d5db;
+        background-color: #212121; /* Deep Black/Grey */
+        color: #ECECF1;
     }
     
-    /* Sidebar */
+    /* Sidebar - Black */
     section[data-testid="stSidebar"] {
-        background-color: #202123;
-        border-right: 1px solid #4d4d4f;
+        background-color: #171717;
+        border-right: 1px solid #2F2F2F;
     }
     
-    /* Chat Bubbles */
+    /* Buttons (New Chat) */
+    .stButton button {
+        background-color: transparent;
+        color: #ECECF1;
+        border: 1px solid #424242;
+        border-radius: 4px;
+        transition: all 0.2s;
+        text-align: left;
+    }
+    .stButton button:hover {
+        background-color: #2F2F2F;
+    }
+    
+    /* Input Area - Floats at bottom */
+    .stChatInput {
+        background-color: #212121;
+        padding-bottom: 30px;
+    }
+    .stChatInput textarea {
+        background-color: #2F2F2F; /* Input Box Grey */
+        color: white;
+        border: 1px solid #424242;
+        border-radius: 12px;
+    }
+    
+    /* Messages */
     div[data-testid="stChatMessage"] {
-        padding: 1.5rem;
-        border-radius: 0.5rem;
-        margin-bottom: 1rem;
-        border: 1px solid transparent;
-        transition: background-color 0.3s;
+        background-color: transparent;
+        border: none;
     }
-    
-    /* User Bubble - Dark Transparent */
     div[data-testid="stChatMessage"]:nth-child(odd) {
-        background-color: rgba(52, 53, 65, 0.9);
-        border: 1px solid #565869;
+        /* User */
+        background-color: transparent; 
     }
-    
-    /* Assistant Bubble - SLightly Lighter */
     div[data-testid="stChatMessage"]:nth-child(even) {
-        background-color: #444654;
-        border: 1px solid #444654;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        /* Assistant */
+        background-color: transparent;
     }
 
     /* Avatars */
     .stChatMessage .stChatMessageAvatar {
-        background: linear-gradient(135deg, #10a37f, #0d8c6d); /* OpenAI Green Gradient */
+        background-color: #19c37d; /* OpenAI Green */
         color: white;
-        border-radius: 4px;
-    }
-    div[data-testid="stChatMessage"]:nth-child(odd) .stChatMessageAvatar {
-        background: linear-gradient(135deg, #8e2de2, #4a00e0); /* User Purple Gradient */
-    }
-
-    /* Headers & Text */
-    h1, h2, h3 {
-        color: #ffffff !important;
-        font-weight: 600;
-        letter-spacing: -0.5px;
-    }
-    
-    /* Inputs */
-    .stTextInput input, .stSelectbox div[data-baseweb="select"] {
-        background-color: #40414f !important;
-        color: white !important;
-        border: 1px solid #565869 !important;
-        border-radius: 6px;
-    }
-    
-    /* Custom Buttons */
-    .stButton button {
-        background-color: #40414f;
-        color: white;
-        border-radius: 6px;
-        border: 1px solid #565869;
-        transition: all 0.2s;
-    }
-    .stButton button:hover {
-        background-color: #202123;
-        border-color: #10a37f;
+        width: 30px;
+        height: 30px;
     }
 
 </style>
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------
-# Sidebar & Config
+# Sidebar Layout (ChatGPT Style)
 # ---------------------------------------------------------
 with st.sidebar:
-    st.markdown("## 🤖 **Assistant**")
-    
-    # Mode Toggle
-    mode = st.radio("Access Mode", ["☁️ Cloud (Gemini)", "🏠 Local (Ollama)"], label_visibility="collapsed")
-    
-    api_key = None
-    provider_code = "ollama"
-    model_name = "llama3"
+    # 1. New Chat Button (Prominent)
+    col1, col2 = st.columns([4,1])
+    with col1:
+        if st.button("➕ New Chat", use_container_width=True):
+            st.session_state.messages = []
+            st.rerun()
+    with col2:
+        # Mini Settings Toggle (Visual Only)
+        st.button("⚙️")
 
-    # -------------------------------------------
-    # Cloud (Gemini / Groq)
-    # -------------------------------------------
-    if "Cloud" in mode:
-        st.info("☁️ Cloud Mode")
+    st.markdown("---")
+    
+    # 2. Mode & Models (Hidden in Expander/Settings)
+    with st.expander("⚙️ Settings & Models", expanded=True):
+        mode = st.radio("Access Mode", ["☁️ Cloud (Groq/Gemini)", "🏠 Local (Ollama)"])
         
-        # Cloud Provider Selection
-        cloud_provider = st.selectbox("Provider", ["Google Gemini", "Groq (Llama3/Mixtral)"])
-        
-        if "Gemini" in cloud_provider:
-            provider_code = "gemini"
-            # Try load Google Key
-            env_key = st.secrets.get("GOOGLE_API_KEY") or os.getenv("GOOGLE_API_KEY")
-            if env_key:
-                api_key = env_key
-                st.success("✅ Gemini Connected")
-            else:
-                api_key = st.text_input("Gemini API Key", type="password")
-                
-        else: # Groq
-            provider_code = "groq"
-            model_name = st.selectbox("Groq Model", ["llama3-8b-8192", "llama3-70b-8192", "mixtral-8x7b-32768"])
-            # Try load Groq Key
-            env_key = st.secrets.get("GROQ_API_KEY") or os.getenv("GROQ_API_KEY")
-            if env_key:
-                api_key = env_key
-                st.success("✅ Groq Connected")
-            else:
-                api_key = st.text_input("Groq API Key", type="password")
-            
-            # NOTE: Groq still needs an embedding model. We'll use Gemini if key available, else warning.
-            if not st.secrets.get("GOOGLE_API_KEY") and not os.getenv("GOOGLE_API_KEY"):
-                st.caption("⚠️ Note: File upload needs a Google Key even for Groq.")
-            
-    else: # Local
-        st.info("🏠 Offline Mode: Private")
+        api_key = None
         provider_code = "ollama"
-        # Expanded Free Model List
-        with st.expander("🛠️ Model Settings", expanded=True):
-            model_name = st.selectbox(
-                "Select Model", 
-                [
-                    "llama3", "mistral", "gemma", "phi3",  # Top Tier
-                    "neural-chat", "starling-lm", "codellama", # Specialty
-                    "llama2", "vicuna", "orca-mini" # Legacy/Lightweight
-                ],
-                help="Make sure you have run 'ollama pull <model>' for these to work!"
-            )
+        model_name = "llama3"
 
-    st.divider()
+        if "Cloud" in mode:
+            cloud_provider = st.selectbox("Cloud Provider", ["Groq", "Google Gemini"])
+            
+            if "Gemini" in cloud_provider:
+                provider_code = "gemini"
+                env_key = st.secrets.get("GOOGLE_API_KEY") or os.getenv("GOOGLE_API_KEY")
+                if env_key:
+                    api_key = env_key
+                    st.caption("✅ Gemini Active")
+                else:
+                    api_key = st.text_input("Gemini Key", type="password")
+                    
+            else: # Groq
+                provider_code = "groq"
+                model_name = st.selectbox("Groq Model", ["llama3-8b-8192", "llama3-70b-8192", "mixtral-8x7b-32768"])
+                env_key = st.secrets.get("GROQ_API_KEY") or os.getenv("GROQ_API_KEY")
+                if env_key:
+                    api_key = env_key
+                    st.caption("✅ Groq Active")
+                else:
+                    api_key = st.text_input("Groq Key", type="password")
+                
+                # Embedding Fallback hint
+                if not st.secrets.get("GOOGLE_API_KEY") and not os.getenv("GOOGLE_API_KEY"):
+                    st.caption("⚠️ File analysis needs Google Key")
+                
+        else: # Local
+            provider_code = "ollama"
+            # Editable Model Name for custom models like 'gemma3:4b'
+            model_options = ["llama3", "mistral", "gemma", "phi3", "Custom..."]
+            selected_model = st.selectbox("Local Model", model_options)
+            
+            if selected_model == "Custom...":
+                model_name = st.text_input("Enter Model Name", value="gemma2:latest", help="Type exact Ollama model name")
+            else:
+                model_name = selected_model
+                
+    st.markdown("---")
     
-    # File Uploader (Cleaner)
-    with st.expander("📚 Knowledge Base", expanded=True):
+    # 3. Knowledge Base
+    with st.expander("📂 Files (RAG)"):
         uploaded_files = st.file_uploader(
-            "Upload files", 
+            "Add Context", 
             accept_multiple_files=True,
             type=['pdf', 'docx', 'txt', 'csv'],
             label_visibility="collapsed"
         )
         if uploaded_files:
-            if st.button("Update Context", type="primary", use_container_width=True):
+            if st.button("⚡ Process Files", use_container_width=True):
                  st.session_state.processing_trigger = True
-    
-    # Bottom Actions
-    st.markdown("---")
-    if st.button("🗑️ Clear Chat", use_container_width=True):
-        st.session_state.messages = []
-        st.rerun()
 
 # ---------------------------------------------------------
 # Main Logic
