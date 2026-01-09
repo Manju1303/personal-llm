@@ -32,6 +32,14 @@ st.markdown("""
     section[data-testid="stSidebar"] {
         background-color: #000000;
         border-right: 1px solid #1f1f1f;
+        /* prevent dragged too small? CSS can try, but streamlit controls width. */
+    }
+    
+    /* Prevent text wrapping in Sidebar */
+    section[data-testid="stSidebar"] * {
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
     }
     
     /* Buttons (New Chat) */
@@ -42,6 +50,8 @@ st.markdown("""
         border-radius: 4px;
         transition: all 0.2s;
         text-align: left;
+        /* Ensure text doesn't break */
+        white-space: nowrap !important;
     }
     .stButton button:hover {
         background-color: #1e1e1e;
