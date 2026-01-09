@@ -4,6 +4,7 @@ llama-index-llms-ollama
 llama-index-embeddings-ollama
 llama-index-llms-gemini
 llama-index-embeddings-gemini
+llama-index-llms-groq
 google-generativeai
 pypdf
 docx2txt

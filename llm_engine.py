@@ -5,6 +5,7 @@ from llama_index.llms.ollama import Ollama
 from llama_index.embeddings.ollama import OllamaEmbedding
 from llama_index.llms.gemini import Gemini
 from llama_index.embeddings.gemini import GeminiEmbedding
+from llama_index.llms.groq import Groq
 
 # Configure Logging
 logging.basicConfig(level=logging.INFO)
@@ -13,26 +14,31 @@ logger = logging.getLogger(__name__)
 class LLMEngine:
     def __init__(self, provider="ollama", model_name="llama3", api_key=None):
         """
-        Initialize the LLM Engine with either Ollama (Local) or Gemini (Cloud).
+        Initialize the LLM Engine.
         """
         self.provider = provider
         self.model_name = model_name
         
         try:
             if provider == "gemini":
-                logger.info("Initializing Google Gemini...")
-                if not api_key:
-                    raise ValueError("API Key is required for Gemini.")
-                
-                # Setup Gemini LLM
-                # Using 'gemini-pro' as it is the most stable alias.
-                self.llm = Gemini(model="models/gemini-pro", api_key=api_key)
-                
-                # Setup Gemini Embeddings
+                if not api_key: raise ValueError("Gemini API Key missing.")
+                # FIX: Removing 'models/' prefix as it often causes 404s in newer libs
+                self.llm = Gemini(model="gemini-1.5-flash", api_key=api_key)
                 self.embed_model = GeminiEmbedding(model_name="models/embedding-001", api_key=api_key)
-                
-            else: # Default to Ollama
-                logger.info(f"Initializing Local Ollama: {model_name}")
+            
+            elif provider == "groq":
+                if not api_key: raise ValueError("Groq API Key missing.")
+                self.llm = Groq(model=model_name, api_key=api_key)
+                # Groq doesn't provide embeddings. We MUST use another provider.
+                # Detailed logic: You can't run Ollama on Cloud.
+                # So for Groq, we'll try to use Gemini Embeddings (requires Google Key!).
+                # But to keep it simple, we will assume user has Google Key in env for embeddings?
+                # Actually, worst case: No embeddings for Groq (Chat only).
+                # Let's use Gemini Embeddings as default Cloud fallback.
+                # NOTE: This implies users need a Google Key even for Groq RAG.
+                self.embed_model = GeminiEmbedding(model_name="models/embedding-001") # Tries to find env key
+
+            else: # Ollama
                 self.llm = Ollama(model=model_name, request_timeout=360.0)
                 self.embed_model = OllamaEmbedding(model_name=model_name)
 

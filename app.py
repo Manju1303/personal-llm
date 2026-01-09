@@ -119,22 +119,38 @@ with st.sidebar:
     model_name = "llama3"
 
     # -------------------------------------------
-    # Cloud (Gemini)
+    # Cloud (Gemini / Groq)
     # -------------------------------------------
     if "Cloud" in mode:
-        # Try to load from Secrets/Env silently
-        env_key = st.secrets.get("GOOGLE_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        st.info("☁️ Cloud Mode")
         
-        if env_key:
-            api_key = env_key
-            st.success("✨ Online: Gemini 1.5 Flash")
+        # Cloud Provider Selection
+        cloud_provider = st.selectbox("Provider", ["Google Gemini", "Groq (Llama3/Mixtral)"])
+        
+        if "Gemini" in cloud_provider:
             provider_code = "gemini"
-        else:
-            api_key = st.text_input("💎 API Key", type="password", placeholder="Paste Google Key here...")
-            if not api_key:
-                 st.warning("Key required for Cloud.")
+            # Try load Google Key
+            env_key = st.secrets.get("GOOGLE_API_KEY") or os.getenv("GOOGLE_API_KEY")
+            if env_key:
+                api_key = env_key
+                st.success("✅ Gemini Connected")
             else:
-                 provider_code = "gemini"
+                api_key = st.text_input("Gemini API Key", type="password")
+                
+        else: # Groq
+            provider_code = "groq"
+            model_name = st.selectbox("Groq Model", ["llama3-8b-8192", "llama3-70b-8192", "mixtral-8x7b-32768"])
+            # Try load Groq Key
+            env_key = st.secrets.get("GROQ_API_KEY") or os.getenv("GROQ_API_KEY")
+            if env_key:
+                api_key = env_key
+                st.success("✅ Groq Connected")
+            else:
+                api_key = st.text_input("Groq API Key", type="password")
+            
+            # NOTE: Groq still needs an embedding model. We'll use Gemini if key available, else warning.
+            if not st.secrets.get("GOOGLE_API_KEY") and not os.getenv("GOOGLE_API_KEY"):
+                st.caption("⚠️ Note: File upload needs a Google Key even for Groq.")
             
     else: # Local
         st.info("🏠 Offline Mode: Private")
