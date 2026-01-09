@@ -127,90 +127,82 @@ with st.sidebar:
     # kept empty or minimal
     pass
 
+    # -------------------------------------------------------------------------
+    # Floating Widgets (Defined in SIDEBAR but CSS moves them to Main Screen)
+    # -------------------------------------------------------------------------
+    # We put these at the very end of sidebar to target them easily with CSS
+    
+    st.markdown("---") # Separator to ensure distinct container
+    
+    # 1. Model Selector (Will be floated Right)
+    if provider_code == "ollama":
+        st.selectbox("M", ["llama3", "mistral", "gemma", "phi3", "custom"], label_visibility="collapsed", key="float_model")
+    elif provider_code == "groq":
+        st.selectbox("M", ["llama3-8b-8192", "llama3-70b-8192", "mixtral-8x7b-32768"], label_visibility="collapsed", key="float_model")
+    else:
+        st.caption("Gemini Flash") # Placeholder for Gemini
+
+    # 2. Upload Button (Will be floated Left)
+    with st.popover("➕", help="Add Files"):
+        st.markdown("### 📂 Upload")
+        uploaded_files_sidebar = st.file_uploader("Drop files", accept_multiple_files=True, label_visibility="collapsed")
+        if uploaded_files_sidebar:
+            st.session_state.uploaded_files = uploaded_files_sidebar # Store in session state
+            if st.button("Process Files", type="primary"):
+                st.session_state.processing_trigger = True
+                st.toast("Processing...")
+        else:
+            st.session_state.uploaded_files = [] # Clear if no files selected
+
 # ---------------------------------------------------------
-# Floating Widget Container (Model Selector + File Upload)
+# CSS: Teleport Sidebar Widgets to Main Screen Bottom
 # ---------------------------------------------------------
 st.markdown("""
 <style>
-    /* Floating Model Selector (Right) */
-    div.floating-selector {
-        position: fixed;
-        bottom: 25px;
-        right: 80px; 
-        z-index: 1000;
-        width: 150px;
-    }
-    div.floating-selector div[data-baseweb="select"] > div {
-        background-color: #2F2F2F !important;
-        border-radius: 20px !important;
-        border: 1px solid #424242 !important;
-        font-size: 0.8rem !important;
-        min-height: 30px !important;
-        height: 30px !important;
+    /* 
+       Targeting the LAST elements in the sidebar.
+       NOTE: This relies on the precise order of elements in the sidebar above.
+       We target the last two 'div.stElementContainer' in the sidebar.
+    */
+    
+    /* Upload Button (The very last item) -> Bottom Left */
+    section[data-testid="stSidebar"] > div > div:last-child {
+        position: fixed !important;
+        bottom: 25px !important;
+        left: 20px !important;
+        width: auto !important;
+        z-index: 99999 !important;
     }
     
-    /* Floating Upload Button (Left) */
-    div.floating-uploader {
-        position: fixed;
-        bottom: 27px; /* Align with input */
-        left: 20px;
-        z-index: 1001;
+    /* Model Selector (The second to last item) -> Bottom Right */
+    section[data-testid="stSidebar"] > div > div:nth-last-child(2) {
+        position: fixed !important;
+        bottom: 25px !important;
+        right: 80px !important;
+        width: 160px !important;
+        z-index: 99999 !important;
     }
-    div.floating-uploader button {
+    
+    /* Styling for the selector to look like a pill */
+    section[data-testid="stSidebar"] > div > div:nth-last-child(2) div[data-baseweb="select"] > div {
         background-color: #2F2F2F !important;
-        color: #ECECF1 !important;
-        border: 1px solid #424242 !important;
-        border-radius: 50% !important; /* Circle */
-        width: 35px !important;
+        border-radius: 20px !important;
+        border: 1px solid #444 !important;
         height: 35px !important;
-        padding: 0 !important;
-        font-size: 1.2rem !important;
-        line-height: 1 !important;
+        min-height: 35px !important;
+    }
+
+    /* Styling for the Plus Button */
+    section[data-testid="stSidebar"] > div > div:last-child button {
+        border-radius: 50% !important;
+        width: 38px !important;
+        height: 38px !important;
+        background-color: #2F2F2F !important;
+        border: 1px solid #444 !important;
+        color: #ddd !important;
     }
 </style>
 """, unsafe_allow_html=True)
-
-# 1. Floating Model Selector (Right)
-with st.container():
-    st.markdown('<div class="floating-selector">', unsafe_allow_html=True)
-    if provider_code == "ollama":
-        model_name = st.selectbox("M", ["llama3", "mistral", "gemma", "phi3", "custom"], label_visibility="collapsed", key="float_model_select")
-        if model_name == "custom":
-            # If custom, we might need a separate input? 
-            # For UI compactness, let's just default to a popular one if they pick custom or show toast
-            st.toast("Edit custom model in Settings")
-            model_name = "llama3" 
-    elif provider_code == "groq":
-        model_name = st.selectbox(
-            "M", 
-            ["llama3-8b-8192", "llama3-70b-8192", "mixtral-8x7b-32768"], 
-            label_visibility="collapsed",
-            key="float_model_select"
-        )
-    else:
-        st.markdown('<div style="color:gray; font-size:0.8rem; padding:5px;">Gemini Flash</div>', unsafe_allow_html=True)
-        model_name = "gemini-1.5-flash"
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# 2. Floating Upload Button (Left)
-with st.container():
-    st.markdown('<div class="floating-uploader">', unsafe_allow_html=True)
-    
-    # Using Popover for the "Menu" feel
-    with st.popover("➕", help="Add Context"):
-        st.markdown("### 📂 Add Files")
-        uploaded_files = st.file_uploader(
-            "Upload", 
-            accept_multiple_files=True,
-            type=['pdf', 'docx', 'txt', 'csv'],
-            label_visibility="collapsed"
-        )
-        if uploaded_files:
-            if st.button("⚡ Process Files", use_container_width=True):
-                st.session_state.processing_trigger = True
-                st.toast("Processing context...")
-                
-    st.markdown('</div>', unsafe_allow_html=True)
 
 st.divider()
 
@@ -229,8 +221,18 @@ if "chat_engine" not in st.session_state:
 if "processing_trigger" not in st.session_state:
     st.session_state.processing_trigger = False
 
+if "uploaded_files" not in st.session_state:
+    st.session_state.uploaded_files = []
+
+# Init Engine Logic (Graceful)
+if provider_code == "groq" and not api_key:
+    # Don't crash, just wait
+    pass 
+elif provider_code == "gemini" and not api_key:
+    pass
+
 # File Processing
-if st.session_state.processing_trigger and uploaded_files:
+if st.session_state.processing_trigger and st.session_state.uploaded_files:
     st.session_state.processing_trigger = False # Reset
     if provider_code == "gemini" and not api_key:
         st.error("Please provide an API Key.")
@@ -240,11 +242,11 @@ if st.session_state.processing_trigger and uploaded_files:
                 # Init Engine
                 st.session_state.engine = LLMEngine(
                     provider=provider_code,
-                    model_name=model_name,
+                    model_name=st.session_state.get("float_model", "llama3"), # Get from float widget
                     api_key=api_key
                 )
                 
-                documents = FileHandler.process_uploaded_files(uploaded_files)
+                documents = FileHandler.process_uploaded_files(st.session_state.uploaded_files)
                 st.session_state.engine.create_index(documents)
                 st.session_state.chat_engine = st.session_state.engine.get_chat_engine()
                 
@@ -257,9 +259,9 @@ if st.session_state.processing_trigger and uploaded_files:
 # Welcome Message if empty
 if not st.session_state.messages:
     st.markdown("""
-    <div style="text-align: center; margin-top: 50px;">
-        <h1 style="color: #ECECF1;">Personal AI</h1>
-        <p style="color: #C5C5D2;">Secure, Private, and Multilingual.</p>
+    <div style="text-align: center; margin-top: 10vh;">
+        <h1 style="color: #ECECF1; font-size: 2.5rem;">Personal AI</h1>
+        <p style="color: #888;">Secure • Private • Smart</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -268,48 +270,47 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-if prompt := st.chat_input("Send a message..."):
-    # User Message
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
+# Chat Input
+if prompt := st.chat_input("Message..."):
+    # Guard Checks
+    if provider_code == "groq" and not api_key:
+        st.warning("⚠️ Please enter Groq API Key in Settings (Sidebar).")
+    elif provider_code == "gemini" and not api_key:
+        st.warning("⚠️ Please enter Gemini API Key in Settings (Sidebar).")
+    else:
+        # Proceed
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
 
-    # AI Response
-    with st.chat_message("assistant"):
-        message_placeholder = st.empty()
-        full_response = ""
-        
-        try:
-            # Auto-init if needed
-            if not st.session_state.engine:
-                if provider_code == "gemini" and not api_key:
-                     full_response = "Please enter your Google API Key in the sidebar."
-                     message_placeholder.markdown(full_response)
-                     raise ValueError("Missing Key")
+        # AI Response
+        with st.chat_message("assistant"):
+            message_placeholder = st.empty()
+            full_response = ""
+            
+            try:
+                # Auto-init if needed
+                if not st.session_state.engine:
+                    st.session_state.engine = LLMEngine(
+                        provider=provider_code, 
+                        model_name=st.session_state.get("float_model", "llama3"), # Get from float widget
+                        api_key=api_key
+                    )
                 
-                # Init basic engine
-                st.session_state.engine = LLMEngine(
-                    provider=provider_code, 
-                    model_name=model_name, 
-                    api_key=api_key
-                )
-            
-            # Ensure Chat Engine exists
-            if not st.session_state.chat_engine:
-                 st.session_state.chat_engine = st.session_state.engine.get_chat_engine()
+                # Ensure Chat Engine
+                if not st.session_state.chat_engine:
+                     st.session_state.chat_engine = st.session_state.engine.get_chat_engine()
 
-            # Generate with History!
-            response_iter = st.session_state.chat_engine.stream_chat(prompt)
+                # Generate
+                response_iter = st.session_state.chat_engine.stream_chat(prompt)
 
-            for part in response_iter.response_gen:
-                full_response += part
-                message_placeholder.markdown(full_response + "▌")
-            
-            message_placeholder.markdown(full_response)
-            
-        except Exception as e:
-            if not full_response:
-                full_response = f"Error: {str(e)}"
+                for part in response_iter.response_gen:
+                    full_response += part
+                    message_placeholder.markdown(full_response + "▌")
+                
                 message_placeholder.markdown(full_response)
-    
-    st.session_state.messages.append({"role": "assistant", "content": full_response})
+                
+            except Exception as e:
+                st.error(f"Error: {str(e)}")
+        
+        st.session_state.messages.append({"role": "assistant", "content": full_response})
