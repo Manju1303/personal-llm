@@ -62,11 +62,20 @@ class LLMEngine:
             logger.error(f"Error creating index: {e}")
             raise e
 
-    def get_query_engine(self):
+    def get_chat_engine(self):
         """
-        Returns a query engine for the created index.
+        Returns a chat engine with memory.
         """
         if not self.index:
-            raise ValueError("Index not created. Upload and process files first.")
+            # If no files, return detailed chat engine (just LLM + Memory)
+            # We need to create an empty index or just use the LLM directly with memory buffer.
+            # LlamaIndex makes it easiest to just have an index.
+            # Let's create an empty index if none exists.
+            self.index = VectorStoreIndex.from_documents([])
         
-        return self.index.as_query_engine(streaming=True)
+        # Use "context" mode: capable of using the index + conversation history
+        return self.index.as_chat_engine(
+            chat_mode="context", 
+            llm=self.llm,
+            verbose=True
+        )

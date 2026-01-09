@@ -164,10 +164,8 @@ if "messages" not in st.session_state:
 
 if "engine" not in st.session_state:
     st.session_state.engine = None
-if "query_engine" not in st.session_state:
-    st.session_state.query_engine = None
-if "processing_trigger" not in st.session_state:
-    st.session_state.processing_trigger = False
+if "chat_engine" not in st.session_state:
+    st.session_state.chat_engine = None
 
 # File Processing
 if st.session_state.processing_trigger and uploaded_files:
@@ -186,7 +184,7 @@ if st.session_state.processing_trigger and uploaded_files:
                 
                 documents = FileHandler.process_uploaded_files(uploaded_files)
                 st.session_state.engine.create_index(documents)
-                st.session_state.query_engine = st.session_state.engine.get_query_engine()
+                st.session_state.chat_engine = st.session_state.engine.get_chat_engine()
                 
                 status.update(label="Context Ready", state="complete", expanded=False)
                 
@@ -220,28 +218,29 @@ if prompt := st.chat_input("Send a message..."):
         full_response = ""
         
         try:
-            # Auto-init if needed (for chat without files)
+            # Auto-init if needed
             if not st.session_state.engine:
                 if provider_code == "gemini" and not api_key:
                      full_response = "Please enter your Google API Key in the sidebar."
                      message_placeholder.markdown(full_response)
                      raise ValueError("Missing Key")
                 
+                # Init basic engine
                 st.session_state.engine = LLMEngine(
                     provider=provider_code, 
                     model_name=model_name, 
                     api_key=api_key
                 )
+            
+            # Ensure Chat Engine exists
+            if not st.session_state.chat_engine:
+                 st.session_state.chat_engine = st.session_state.engine.get_chat_engine()
 
-            # Generate
-            if st.session_state.query_engine:
-                response_iter = st.session_state.query_engine.query(prompt).response_gen
-            else:
-                response_iter = st.session_state.engine.llm.stream_complete(prompt)
+            # Generate with History!
+            response_iter = st.session_state.chat_engine.stream_chat(prompt)
 
-            for part in response_iter:
-                text = part if isinstance(part, str) else getattr(part, 'delta', str(part))
-                full_response += text
+            for part in response_iter.response_gen:
+                full_response += part
                 message_placeholder.markdown(full_response + "▌")
             
             message_placeholder.markdown(full_response)
