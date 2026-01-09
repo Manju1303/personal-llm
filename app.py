@@ -87,77 +87,93 @@ st.markdown("""
 # ---------------------------------------------------------
 # Sidebar Layout (ChatGPT Style)
 # ---------------------------------------------------------
+# ---------------------------------------------------------
+# Sidebar: Minimalist (New Chat, History, Settings)
+# ---------------------------------------------------------
 with st.sidebar:
-    # 1. New Chat Button (Prominent)
-    col1, col2 = st.columns([4,1])
-    with col1:
-        if st.button("➕ New Chat", use_container_width=True):
-            st.session_state.messages = []
-            st.rerun()
-    with col2:
-        # Mini Settings Toggle (Visual Only)
-        st.button("⚙️")
-
+    if st.button("➕ New Chat", use_container_width=True):
+        st.session_state.messages = []
+        st.rerun()
+    
+    st.markdown("### History")
+    st.caption("Today")
+    st.button("📝 Previous Chat 1", use_container_width=True)
+    st.button("📝 Previous Chat 2", use_container_width=True)
+    
     st.markdown("---")
     
-    # 2. Mode & Models (Hidden in Expander/Settings)
-    with st.expander("⚙️ Settings & Models", expanded=True):
-        mode = st.radio("Access Mode", ["☁️ Cloud (Groq/Gemini)", "🏠 Local (Ollama)"])
+    # Settings (Hidden by default)
+    with st.expander("⚙️ Settings"):
+        st.write("**System Configuration**")
+        mode = st.radio("Mode", ["Cloud", "Local"], label_visibility="collapsed")
         
+        # Config Logic (Hidden in Settings)
         api_key = None
         provider_code = "ollama"
         model_name = "llama3"
 
         if "Cloud" in mode:
-            cloud_provider = st.selectbox("Cloud Provider", ["Groq", "Google Gemini"])
-            
+            cloud_provider = st.selectbox("Cloud", ["Groq", "Google Gemini"])
             if "Gemini" in cloud_provider:
                 provider_code = "gemini"
                 env_key = st.secrets.get("GOOGLE_API_KEY") or os.getenv("GOOGLE_API_KEY")
                 if env_key:
                     api_key = env_key
-                    st.caption("✅ Gemini Active")
+                    st.success("Connected")
                 else:
-                    api_key = st.text_input("Gemini Key", type="password")
-                    
-            else: # Groq
-                provider_code = "groq"
-                model_name = st.selectbox("Groq Model", ["llama3-8b-8192", "llama3-70b-8192", "mixtral-8x7b-32768"])
-                env_key = st.secrets.get("GROQ_API_KEY") or os.getenv("GROQ_API_KEY")
-                if env_key:
-                    api_key = env_key
-                    st.caption("✅ Groq Active")
-                else:
-                    api_key = st.text_input("Groq Key", type="password")
-                
-                # Embedding Fallback hint
-                if not st.secrets.get("GOOGLE_API_KEY") and not os.getenv("GOOGLE_API_KEY"):
-                    st.caption("⚠️ File analysis needs Google Key")
-                
-        else: # Local
-            provider_code = "ollama"
-            # Editable Model Name for custom models like 'gemma3:4b'
-            model_options = ["llama3", "mistral", "gemma", "phi3", "Custom..."]
-            selected_model = st.selectbox("Local Model", model_options)
-            
-            if selected_model == "Custom...":
-                model_name = st.text_input("Enter Model Name", value="gemma2:latest", help="Type exact Ollama model name")
+                    api_key = st.text_input("Key", type="password")
             else:
-                model_name = selected_model
-                
-    st.markdown("---")
-    
-    # 3. Knowledge Base
-    with st.expander("📂 Files (RAG)"):
-        uploaded_files = st.file_uploader(
-            "Add Context", 
-            accept_multiple_files=True,
-            type=['pdf', 'docx', 'txt', 'csv'],
+                provider_code = "groq"
+                st.info("Using Groq")
+                env_key = st.secrets.get("GROQ_API_KEY") or os.getenv("GROQ_API_KEY")
+                if env_key: 
+                    api_key = env_key 
+                    st.success("Connected")
+                else: 
+                     api_key = st.text_input("Groq Key", type="password")
+        else:
+            provider_code = "ollama"
+            st.info("Local Mode")
+
+    # Knowledge Base (Moved specific file handling to main area or settings? 
+    # User said sidebar only NewChat/Settings/History. 
+    # But we need file upload. Let's put it in Settings for minimal look or a small icon)
+    with st.expander("📂 Files"):
+        uploaded_files = st.file_uploader("Upload", accept_multiple_files=True, label_visibility="collapsed")
+        if uploaded_files:
+            if st.button("Process", use_container_width=True):
+                 st.session_state.processing_trigger = True
+
+# ---------------------------------------------------------
+# Main Area: Top Bar (Model Selector)
+# ---------------------------------------------------------
+# ChatGPT puts model selector at top left.
+col_model, col_spacer, col_mic = st.columns([2, 4, 1])
+
+with col_model:
+    # Model Selector (Visual like ChatGPT Header)
+    if provider_code == "ollama":
+        model_name = st.selectbox(
+            "Model", 
+            ["llama3", "mistral", "gemma", "phi3", "Custom..."], 
             label_visibility="collapsed"
         )
-        if uploaded_files:
-            if st.button("⚡ Process Files", use_container_width=True):
-                 st.session_state.processing_trigger = True
+        if model_name == "Custom...":
+            model_name = st.text_input("Model Name", value="gemma2:latest")
+    elif provider_code == "groq":
+        model_name = st.selectbox(
+            "Model", 
+            ["llama3-8b-8192", "llama3-70b-8192", "mixtral-8x7b-32768"], 
+            label_visibility="collapsed"
+        )
+    else:
+        st.markdown(f"**🤖 Gemini 1.5 Flash**")
+
+with col_mic:
+    # Mic Dummy Button (Visual)
+    st.button("🎙️", type="secondary")
+
+st.divider()
 
 # ---------------------------------------------------------
 # Main Logic
