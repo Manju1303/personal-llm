@@ -2,16 +2,16 @@ import os
 import logging
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings
 from llama_index.llms.ollama import Ollama
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+from llama_index.embeddings.ollama import OllamaEmbedding
 
 # Configure Logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class LocalLLMEngine:
-    def __init__(self, model_name="llama3", embedding_model="all-MiniLM-L6-v2"):
+    def __init__(self, model_name="llama3", embedding_model="llama3"):
         """
-        Initialize the Local LLM Engine with Ollama and HuggingFace Embeddings.
+        Initialize the Local LLM Engine with Ollama for both Generation and Embeddings.
         """
         self.model_name = model_name
         
@@ -24,10 +24,12 @@ class LocalLLMEngine:
             logger.error(f"Failed to initialize Ollama: {e}")
             raise e
 
-        # Setup Embeddings (Offline)
+        # Setup Embeddings (Ollama)
         try:
-            logger.info(f"Loading local embedding model: {embedding_model}")
-            self.embed_model = HuggingFaceEmbedding(model_name=embedding_model)
+            logger.info(f"Connecting to Ollama for embeddings: {embedding_model}")
+            # Note: Using the same model for embeddings is often fine for simple use cases,
+            # or user can pull 'nomic-embed-text'
+            self.embed_model = OllamaEmbedding(model_name=embedding_model)
             Settings.embed_model = self.embed_model
         except Exception as e:
             logger.error(f"Failed to load embedding model: {e}")

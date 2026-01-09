@@ -72,11 +72,11 @@ if process_btn and uploaded_files:
         try:
             # Initialize Engine
             if not st.session_state.engine:
-                st.session_state.engine = LocalLLMEngine(model_name=model_name)
+                st.session_state.engine = LocalLLMEngine(model_name=model_name, embedding_model=model_name)
             
             # Update Model if changed
             if st.session_state.engine.model_name != model_name:
-                 st.session_state.engine = LocalLLMEngine(model_name=model_name)
+                 st.session_state.engine = LocalLLMEngine(model_name=model_name, embedding_model=model_name)
 
             # Process Files
             documents = FileHandler.process_uploaded_files(uploaded_files)
